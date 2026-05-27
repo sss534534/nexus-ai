@@ -3,7 +3,7 @@ Nexus LLM - Enterprise-grade 7B LLM Training Framework
 Enterprise-ready LLM framework with RLHF, Agent, Compression and Incremental Learning
 """
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 __author__ = "Nexus AI Team"
 
 # Core modules
@@ -27,6 +27,14 @@ from .compression import (
 from .incremental import (
     IncrementalConfig, ExperienceReplayBuffer, EWCRegularizer,
     AdapterModule, AdapterModel, IncrementalTrainer
+)
+
+# OpenAI Compatible API
+from .openai_api import (
+    OpenAICompatibleServer,
+    OpenAIServerConfig,
+    create_openai_server,
+    run_openai_server,
 )
 
 __all__ = [
@@ -82,4 +90,10 @@ __all__ = [
     "AdapterModule",
     "AdapterModel",
     "IncrementalTrainer",
+
+    # OpenAI Compatible API
+    "OpenAICompatibleServer",
+    "OpenAIServerConfig",
+    "create_openai_server",
+    "run_openai_server",
 ]

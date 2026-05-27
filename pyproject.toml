@@ -1,6 +1,6 @@
 [project]
 name = "nexus-llm"
-version = "1.0.0"
+version = "2.1.0"
 description = "Enterprise-grade 7B LLM Training Framework for Vertical Domains"
 readme = "README.md"
 license = {text = "Apache-2.0"}

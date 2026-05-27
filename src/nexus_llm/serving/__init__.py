@@ -633,15 +633,10 @@ class ModelServer:
         return app
     
     async def _generate_endpoint(
+        self,
         request: GenerateRequest,
-        api_key: Optional[str] = None,
     ) -> GenerateResponse:
         """Generate text endpoint."""
-        # Security check
-        if self.security and api_key:
-            if not self.security.validate_api_key(api_key):
-                raise HTTPException(status_code=401, detail="Invalid API key")
-        
         # Generate
         start_time = time.time()
         
@@ -683,15 +678,10 @@ class ModelServer:
         )
     
     async def _generate_stream_endpoint(
+        self,
         request: GenerateRequest,
-        api_key: Optional[str] = None,
     ):
         """Stream generation endpoint."""
-        # Security check
-        if self.security and api_key:
-            if not self.security.validate_api_key(api_key):
-                raise HTTPException(status_code=401, detail="Invalid API key")
-        
         async def stream_generator():
             for token in await self.engine.generate_stream(
                 request.prompt,
@@ -711,15 +701,10 @@ class ModelServer:
         )
     
     async def _batch_generate_endpoint(
+        self,
         request: BatchGenerateRequest,
-        api_key: Optional[str] = None,
     ) -> List[GenerateResponse]:
         """Batch generation endpoint."""
-        # Security check
-        if self.security and api_key:
-            if not self.security.validate_api_key(api_key):
-                raise HTTPException(status_code=401, detail="Invalid API key")
-        
         # Generate batch
         responses = self.engine.batch_generate(
             request.prompts,
