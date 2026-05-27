@@ -1,0 +1,201 @@
+# Nexus-7B 小模型优化配置
+# 针对 7B 参数规模的训练优化，支持单卡和多卡训练
+
+# ============================================================================
+# 模型配置 - 7B 规模优化
+# ============================================================================
+model:
+  # 基础架构参数
+  vocab_size: 32000
+  hidden_size: 4096
+  intermediate_size: 11008  # hidden_size * 2.6875 (SwiGLU比例)
+  num_hidden_layers: 32
+  num_attention_heads: 32
+  
+  # GQA (Grouped Query Attention) - 减少KV Cache显存
+  num_key_value_heads: 8  # 32 heads / 4 groups
+  attention_head_dim: 128  # hidden_size / num_attention_heads
+  
+  # RoPE 位置编码
+  rope_theta: 10000.0
+  max_position_embeddings: 4096
+  rope_scaling:
+    type: "dynamic"  # 动态扩展，支持更长序列
+    factor: 2.0
+  
+  # 激活和归一化
+  hidden_act: "silu"  # SwiGLU使用SiLU
+  rms_norm_eps: 1e-6
+  
+  # Dropout (训练时)
+  attention_dropout: 0.0
+  hidden_dropout: 0.0
+  
+  # 其他
+  tie_word_embeddings: false
+  use_cache: true
+  gradient_checkpointing: true  # 节省显存
+
+# ============================================================================
+# 训练配置 - 内存优化
+# ============================================================================
+training:
+  # 基础训练参数
+  num_epochs: 3
+  max_steps: 100000
+  warmup_steps: 2000
+  warmup_ratio: 0.02
+  
+  # 学习率
+  learning_rate: 2e-5
+  min_learning_rate: 2e-6
+  lr_scheduler_type: "cosine"
+  
+  # 批次配置 - 梯度累积优化显存
+  per_device_train_batch_size: 1  # 单卡小批次
+  gradient_accumulation_steps: 16  # 累积16步 = 有效批次16
+  per_device_eval_batch_size: 2
+  
+  # 精度配置
+  precision: "bf16"  # BF16混合精度
+  fp16: false
+  bf16: true
+  
+  # 梯度配置
+  max_grad_norm: 1.0
+  gradient_checkpointing: true
+  
+  # 优化器
+  optimizer: "adamw_torch_fused"
+  weight_decay: 0.01
+  adam_beta1: 0.9
+  adam_beta2: 0.95
+  adam_epsilon: 1e-8
+  
+  # 序列长度
+  max_seq_length: 2048
+  
+  # 评估配置
+  eval_steps: 500
+  eval_strategy: "steps"
+  save_steps: 1000
+  save_total_limit: 3
+  
+  # 日志配置
+  logging_steps: 10
+  logging_first_step: true
+
+# ============================================================================
+# DeepSpeed ZeRO-3 配置 - 多卡显存优化
+# ============================================================================
+deepspeed:
+  zero_stage: 3
+  offload_optimizer:
+    device: "cpu"
+    pin_memory: true
+  offload_param:
+    device: "cpu"
+    pin_memory: true
+  overlap_comm: true
+  contiguous_gradients: true
+  reduce_bucket_size: 5e8
+  stage3_prefetch_bucket_size: 5e7
+  stage3_param_persistence_threshold: 1e5
+  
+  # 混合精度
+  bf16:
+    enabled: true
+  
+  # 梯度累积
+  gradient_accumulation_steps: 16
+
+# ============================================================================
+# LoRA 微调配置 - 参数高效微调
+# ============================================================================
+lora:
+  enabled: false  # 启用LoRA时设为true
+  r: 64  # LoRA秩
+  lora_alpha: 16
+  lora_dropout: 0.05
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  bias: "none"
+  task_type: "CAUSAL_LM"
+
+# ============================================================================
+# QLoRA 配置 - 量化LoRA (更省显存)
+# ============================================================================
+qlora:
+  enabled: false
+  bits: 4  # 4-bit量化
+  quant_type: "nf4"
+  double_quant: true
+  lora_config:
+    r: 64
+    lora_alpha: 16
+    lora_dropout: 0.05
+
+# ============================================================================
+# 推理配置 - 优化生成
+# ============================================================================
+inference:
+  # 精度
+  precision: "bf16"
+  
+  # KV Cache
+  use_cache: true
+  max_cache_length: 4096
+  
+  # 生成参数
+  max_new_tokens: 512
+  temperature: 0.7
+  top_k: 50
+  top_p: 0.95
+  repetition_penalty: 1.1
+  
+  # 批量推理
+  batch_size: 1
+  max_batch_size: 8
+
+# ============================================================================
+# 数据配置
+# ============================================================================
+data:
+  train_file: "data/prepared/train.jsonl"
+  validation_file: "data/prepared/validation.jsonl"
+  tokenizer_path: "tokenizer/nexus_tokenizer.model"
+  
+  # 数据处理
+  max_seq_length: 2048
+  truncation: true
+  padding: "max_length"
+  
+  # 数据格式
+  format: "instruction"  # instruction, chat, completion
+  instruction_template: "用户：{}\n助手：{}"
+
+# ============================================================================
+# 硬件预估 (7B模型)
+# ============================================================================
+# 显存需求估算:
+# - BF16训练 (无ZeRO): ~24GB
+# - BF16 + ZeRO-2 (4卡): ~12GB/卡
+# - BF16 + ZeRO-3 + CPU Offload (4卡): ~8GB/卡
+# - LoRA微调: ~12GB
+# - QLoRA (4-bit): ~6GB
+# 
+# 推理显存:
+# - BF16: ~16GB
+# - INT8: ~8GB
+# - INT4: ~5GB
+# 
+# 训练时间估算 (单卡A100):
+# - 全量微调 (100K样本): ~24小时
+# - LoRA微调 (100K样本): ~6小时
+# ============================================================================
