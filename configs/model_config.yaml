@@ -1,0 +1,151 @@
+# Model Architecture Configuration
+model:
+  name: "nexus-7b"
+  architecture: "decoder-only-transformer"
+  
+  # Model dimensions
+  hidden_size: 4096
+  intermediate_size: 11008
+  num_attention_heads: 32
+  num_hidden_layers: 32
+  num_key_value_heads: 32  # For GQA, set to lower value (e.g., 8)
+  
+  # RoPE (Rotary Position Embedding)
+  rope_theta: 10000.0
+  max_position_embeddings: 8192
+  rope_scaling:
+    type: "dynamic"  # or "linear"
+    factor: 2.0
+  
+  # Normalization
+  rms_norm_eps: 1e-6
+  layer_norm_type: "rms_norm"
+  
+  # Attention
+  attention_dropout: 0.0
+  hidden_dropout: 0.0
+  attention_bias: false
+  use_flash_attention: true
+  
+  # Activation
+  hidden_act: "silu"  # SwiGLU
+  
+  # Vocabulary
+  vocab_size: 152064
+  tie_word_embeddings: false
+  
+  # Initialization
+  initializer_range: 0.02
+
+# Training Configuration
+training:
+  # Precision
+  precision: "bf16"  # fp16, bf16, fp32
+  gradient_checkpointing: true
+  
+  # Batch settings
+  batch_size: 4
+  gradient_accumulation_steps: 8
+  micro_batch_size: 1
+  
+  # Learning rate
+  learning_rate: 1.0e-4
+  weight_decay: 0.1
+  beta1: 0.9
+  beta2: 0.95
+  max_grad_norm: 1.0
+  
+  # Scheduler
+  lr_scheduler: "cosine"
+  warmup_ratio: 0.01
+  min_lr_ratio: 0.1
+  
+  # Training steps
+  max_steps: 100000
+  save_steps: 1000
+  eval_steps: 500
+  log_steps: 10
+  
+  # Mixed precision
+  use_amp: true
+  amp_dtype: "bfloat16"
+
+# Distributed Training
+distributed:
+  backend: "nccl"
+  strategy: "deepspeed"  # or "fsdp", "ddp"
+  world_size: 8
+  nnodes: 1
+  
+  deepspeed:
+    config_path: "configs/deepspeed/zero3.json"
+    zero_stage: 3
+    offload_optimizer: true
+    offload_param: true
+
+# Data Configuration
+data:
+  train_file: "data/train.jsonl"
+  valid_file: "data/valid.jsonl"
+  max_seq_length: 8192
+  
+  preprocessing:
+    num_workers: 16
+    shuffle: true
+    seed: 42
+  
+  tokenizer:
+    type: "sentencepiece"
+    path: "tokenizer/nexus_tokenizer.model"
+    pad_token: "<|pad|>"
+    eos_token: "<|endoftext|>"
+    bos_token: "<|beginoftext|>"
+
+# Checkpointing
+checkpoint:
+  save_dir: "checkpoints"
+  save_total_limit: 5
+  save_best_only: true
+  metric_for_best: "eval_loss"
+  resume_from_checkpoint: null
+
+# Logging
+logging:
+  log_dir: "logs"
+  use_wandb: true
+  wandb_project: "nexus-llm"
+  wandb_entity: "your-team"
+  use_tensorboard: true
+  
+# Evaluation
+evaluation:
+  metrics: ["perplexity", "accuracy", "f1"]
+  benchmark_datasets:
+    - "ceval"
+    - "cmmlu"
+    - "mmlu"
+
+# Enterprise Features
+enterprise:
+  # Monitoring
+  monitoring:
+    enabled: true
+    prometheus_port: 9090
+    metrics_interval: 60
+    
+  # Security
+  security:
+    encryption_enabled: true
+    audit_logging: true
+    access_control: true
+    
+  # Resource Management
+  resources:
+    gpu_memory_fraction: 0.9
+    cpu_memory_limit: "256GB"
+    
+  # High Availability
+  ha:
+    checkpoint_replication: 3
+    auto_recovery: true
+    health_check_interval: 30

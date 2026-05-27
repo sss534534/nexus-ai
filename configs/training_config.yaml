@@ -1,0 +1,183 @@
+# Training Configuration
+training:
+  # Output directories
+  output_dir: "outputs/nexus-7b"
+  checkpoint_dir: "outputs/nexus-7b/checkpoints"
+  log_dir: "logs"
+  
+  # Training hyperparameters
+  learning_rate: 1.0e-4
+  weight_decay: 0.1
+  beta1: 0.9
+  beta2: 0.95
+  max_grad_norm: 1.0
+  
+  # Batch settings
+  batch_size: 4
+  gradient_accumulation_steps: 8
+  micro_batch_size: 1
+  
+  # Training steps
+  max_steps: 100000
+  save_steps: 1000
+  eval_steps: 500
+  log_steps: 10
+  warmup_steps: 1000
+  
+  # Learning rate scheduler
+  lr_scheduler: "cosine"  # cosine, linear, constant
+  min_lr_ratio: 0.1
+  
+  # Precision
+  precision: "bf16"  # fp16, bf16, fp32
+  
+  # Gradient checkpointing
+  gradient_checkpointing: true
+  
+  # Logging
+  use_wandb: true
+  wandb_project: "nexus-llm"
+  wandb_entity: null
+  use_tensorboard: true
+  
+  # Checkpointing
+  save_total_limit: 5
+  save_best_only: true
+  metric_for_best: "eval_loss"
+  
+  # Resume training
+  resume_from_checkpoint: null
+  
+  # Seed
+  seed: 42
+  
+  # Evaluation
+  eval_batch_size: 8
+  
+  # Early stopping
+  early_stopping_patience: 10
+  early_stopping_threshold: 0.001
+
+# Distributed Training
+distributed:
+  backend: "nccl"
+  strategy: "deepspeed"  # deepspeed, fsdp, ddp
+  world_size: 8
+  nnodes: 1
+  
+  deepspeed:
+    config_path: "configs/deepspeed/zero3.json"
+    zero_stage: 3
+    offload_optimizer: true
+    offload_param: true
+
+# LoRA Configuration (for fine-tuning)
+lora:
+  enabled: false
+  r: 16
+  alpha: 32
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  dropout: 0.05
+  bias: "none"
+  quantization:
+    enabled: false
+    load_in_4bit: false
+    load_in_8bit: false
+    bnb_4bit_compute_dtype: "bfloat16"
+    bnb_4bit_quant_type: "nf4"
+
+# Optimization
+optimization:
+  optimizer: "adamw"  # adamw, adam, sgd
+  lr_scheduler_type: "cosine"
+  warmup_ratio: 0.01
+  
+  # Gradient clipping
+  max_grad_norm: 1.0
+  
+  # Mixed precision
+  fp16: false
+  bf16: true
+  
+  # Gradient accumulation
+  gradient_accumulation_steps: 8
+
+# Data loading
+data_loading:
+  num_workers: 16
+  prefetch_factor: 4
+  pin_memory: true
+  persistent_workers: true
+  drop_last: true
+
+# Validation
+validation:
+  enabled: true
+  eval_strategy: "steps"  # steps, epoch
+  eval_steps: 500
+  eval_delay: 0
+  
+  # Metrics
+  compute_perplexity: true
+  compute_bleu: false
+  compute_rouge: true
+
+# Logging
+logging:
+  log_level: "INFO"
+  log_file: "logs/training.log"
+  log_format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # Progress bar
+  disable_tqdm: false
+  
+  # Wandb
+  wandb:
+    enabled: true
+    project: "nexus-llm"
+    entity: null
+    tags: ["nexus-7b", "pretraining"]
+    log_model: true
+  
+  # Tensorboard
+  tensorboard:
+    enabled: true
+    log_dir: "logs/tensorboard"
+
+# Checkpointing
+checkpointing:
+  save_strategy: "steps"  # steps, epoch
+  save_steps: 1000
+  save_total_limit: 5
+  save_safetensors: true
+  
+  # Best model
+  save_best_only: true
+  metric_for_best: "eval_loss"
+  greater_is_better: false
+  
+  # Resume
+  resume_from_checkpoint: null
+
+# Profiling
+profiling:
+  enabled: false
+  profile_steps: 10
+  profile_memory: true
+  profile_cuda: true
+  
+  # Output
+  output_dir: "logs/profiles"
+
+# Debugging
+debugging:
+  enabled: false
+  detect_anomaly: false
+  find_unused_parameters: false

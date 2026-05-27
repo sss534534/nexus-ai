@@ -1,0 +1,206 @@
+# Data Configuration
+data:
+  # Data paths
+  train_file: "data/train.jsonl"
+  valid_file: "data/valid.jsonl"
+  test_file: "data/test.jsonl"
+  
+  # Sequence settings
+  max_seq_length: 8192
+  min_seq_length: 10
+  
+  # Tokenizer settings
+  tokenizer:
+    type: "sentencepiece"  # sentencepiece, huggingface
+    path: "tokenizer/nexus_tokenizer.model"
+    vocab_size: 152064
+    
+    # Special tokens
+    pad_token: "<|pad|>"
+    eos_token: "<|endoftext|>"
+    bos_token: "<|beginoftext|>"
+    unk_token: "<|unk|>"
+    
+    # Additional special tokens for chat/instruction
+    special_tokens:
+      - "<|system|>"
+      - "<|user|>"
+      - "<|assistant|>"
+      - "<|instruction|>"
+      - "<|response|>"
+      - "<|context|>"
+      - "<|query|>"
+      - "<|answer|>"
+  
+  # Data preprocessing
+  preprocessing:
+    enabled: true
+    num_workers: 16
+    shuffle: true
+    seed: 42
+    
+    # Text cleaning
+    clean_text: true
+    remove_html: true
+    normalize_whitespace: true
+    
+    # Filtering
+    filter_by_length: true
+    min_length: 10
+    max_length: 8192
+    
+    # Deduplication
+    deduplication:
+      enabled: true
+      method: "exact"  # exact, fuzzy
+      threshold: 0.95
+    
+    # Quality filtering
+    quality_filter:
+      enabled: true
+      min_word_count: 10
+      max_repetition_ratio: 0.5
+      language_detection: true
+      target_languages: ["zh", "en"]
+  
+  # Data augmentation
+  augmentation:
+    enabled: false
+    methods:
+      - "random_deletion"
+      - "random_swap"
+      - "synonym_replacement"
+    probability: 0.1
+  
+  # Data format
+  format:
+    type: "jsonl"  # jsonl, json, csv, txt
+    text_column: "text"
+    instruction_column: "instruction"
+    input_column: "input"
+    output_column: "output"
+    conversation_column: "messages"
+  
+  # Data loading
+  loading:
+    batch_size: 4
+    num_workers: 16
+    prefetch_factor: 4
+    pin_memory: true
+    persistent_workers: true
+    drop_last: true
+  
+  # Data mixing (for multi-source training)
+  data_mixing:
+    enabled: false
+    sources:
+      - name: "general"
+        path: "data/general"
+        weight: 0.6
+        sampling: "random"
+      - name: "code"
+        path: "data/code"
+        weight: 0.2
+        sampling: "random"
+      - name: "math"
+        path: "data/math"
+        weight: 0.2
+        sampling: "random"
+
+# Data paths for different domains
+domain_data:
+  # General domain
+  general:
+    train: "data/general/train.jsonl"
+    valid: "data/general/valid.jsonl"
+    test: "data/general/test.jsonl"
+  
+  # Code domain
+  code:
+    train: "data/code/train.jsonl"
+    valid: "data/code/valid.jsonl"
+    test: "data/code/test.jsonl"
+    languages: ["python", "javascript", "java", "cpp", "go"]
+  
+  # Math domain
+  math:
+    train: "data/math/train.jsonl"
+    valid: "data/math/valid.jsonl"
+    test: "data/math/test.jsonl"
+  
+  # Finance domain
+  finance:
+    train: "data/finance/train.jsonl"
+    valid: "data/finance/valid.jsonl"
+    test: "data/finance/test.jsonl"
+  
+  # Medical domain
+  medical:
+    train: "data/medical/train.jsonl"
+    valid: "data/medical/valid.jsonl"
+    test: "data/medical/test.jsonl"
+  
+  # Legal domain
+  legal:
+    train: "data/legal/train.jsonl"
+    valid: "data/legal/valid.jsonl"
+    test: "data/legal/test.jsonl"
+
+# Instruction tuning data
+instruction_tuning:
+  enabled: false
+  template: "alpaca"  # alpaca, vicuna, chatml
+  
+  # Template format
+  templates:
+    alpaca:
+      instruction: "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:\n{output}"
+    vicuna:
+      instruction: "USER: {instruction}\n{input}\nASSISTANT: {output}"
+    chatml:
+      instruction: "<|im_start|>user\n{instruction}\n{input}<|im_end|>\n<|im_start|>assistant\n{output}<|im_end|>"
+
+# Conversation data
+conversation:
+  enabled: false
+  format: "sharegpt"  # sharegpt, openai
+  
+  # Conversation roles
+  roles:
+    system: "system"
+    user: "user"
+    assistant: "assistant"
+  
+  # Conversation template
+  template:
+    system_prefix: "<|system|>\n{content}\n"
+    user_prefix: "<|user|>\n{content}\n"
+    assistant_prefix: "<|assistant|>\n{content}\n"
+    separator: "\n"
+
+# Data validation
+validation:
+  enabled: true
+  
+  # Schema validation
+  schema:
+    required_fields: ["text"]
+    optional_fields: ["instruction", "input", "output", "metadata"]
+  
+  # Content validation
+  content:
+    check_encoding: true
+    check_length: true
+    check_language: true
+    check_toxicity: false
+  
+  # Statistics
+  compute_statistics: true
+  output_statistics: "data/statistics.json"
+
+# Data caching
+caching:
+  enabled: true
+  cache_dir: "data/cache"
+  max_cache_size: "100GB"
+  cache_format: "arrow"  # arrow, parquet
